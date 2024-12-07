@@ -26,57 +26,67 @@ parse = \input ->
             _ ->
                 crash "invalid input"
 
-Operator : I64, I64 -> I64
-
 Equation : {
     lhs : I64,
     rhs : List I64,
 }
 
+Operator : [Add, Mul, Cat, Sub, Div, Trunc]
+
+digits : I64 -> I64
+digits = \m -> m |> Num.toStr |> Str.toUtf8 |> List.len |> Num.toI64
+
+endsWith : I64, I64 -> Bool
+endsWith = \str, sub ->
+    str % Num.powInt 10 (digits sub) == sub
+
+apply : Operator, I64, I64 -> I64
+apply = \op, n, m ->
+    when op is
+        Add -> n + m
+        Mul -> n * m
+        Cat -> n * Num.powInt 10 (digits m) + m
+        Sub -> n - m
+        Div -> n // m
+        Trunc -> n // (Num.powInt 10 (digits m))
+
+inverse : Operator -> Operator
+inverse = \op ->
+    when op is
+        Add -> Sub
+        Mul -> Div
+        Cat -> Trunc
+        Sub -> Add
+        Div -> Mul
+        Trunc -> Cat
+
 hasSolution : Equation, List Operator -> Bool
 hasSolution = \eq, ops ->
-    operatorCount = List.len eq.rhs - 1
-    base = List.len ops
-    operatorMasks =
-        List.range { start: At 0, end: Length (base |> Num.powInt operatorCount) }
-
-    operatorPositions =
-        List.range { start: At (operatorCount - 1), end: At 0 }
-
-    List.any operatorMasks \mask ->
-        operators =
-            List.keepOks operatorPositions \i ->
-                index = mask // (base |> Num.powInt i) % base
-                ops |> List.get index
-
-        (firstOperand, restOperands) =
-            when eq.rhs is
-                [x, .. as xs] -> (x, xs)
-                _ -> crash "single operand equation"
-
-        result =
-            List.map2 operators restOperands \x, y -> (x, y)
-            |> List.walk firstOperand \acc, (op, operand) ->
-                op acc operand
-
-        eq.lhs == result
+    when eq.rhs is
+        [] -> crash "equation cannot have no rhs operands"
+        [rhs] -> eq.lhs == rhs
+        [.. as rhs, operand] ->
+            ops
+            |> List.keepIf \op ->
+                when op is
+                    Add -> eq.lhs - operand > 0
+                    Mul -> eq.lhs % operand == 0
+                    Cat -> eq.lhs |> endsWith operand
+                    _ -> Bool.true
+            |> List.any \op ->
+                lhs = apply (inverse op) eq.lhs operand
+                hasSolution { lhs, rhs } ops
 
 part1 = \input ->
-    input
-    |> parse
-    |> List.keepIf \eq -> eq |> hasSolution [Num.add, Num.mul]
+    equations = parse input
+    equations
+    |> List.keepIf \eq -> eq |> hasSolution [Add, Mul]
     |> List.map .lhs
     |> List.sum
-
-concat : I64, I64 -> I64
-concat = \a, b ->
-    when Str.concat (Num.toStr a) (Num.toStr b) |> Str.toI64 is
-        Ok c -> c
-        Err _ -> crash ""
 
 part2 = \input ->
     input
     |> parse
-    |> List.keepIf \eq -> eq |> hasSolution [Num.add, Num.mul, concat]
+    |> List.keepIf \eq -> eq |> hasSolution [Add, Mul, Cat]
     |> List.map .lhs
     |> List.sum

@@ -43,8 +43,8 @@ main = Stdout.line! "Hello World!"
 # expect Day06.part2 Day06.example == 6
 # expect Day06.part2 Day06.myInput == 1721
 
-# import Day07
-# expect Day07.part1 Day07.example == 3749
-# expect Day07.part1 Day07.myInput == 8401132154762
-# expect Day07.part2 Day07.example == 11387
-# expect Day07.part2 Day07.myInput == 95297119227552
+import Day07
+expect Day07.part1 Day07.example == 3749
+expect Day07.part1 Day07.myInput == 8401132154762
+expect Day07.part2 Day07.example == 11387
+expect Day07.part2 Day07.myInput == 95297119227552
