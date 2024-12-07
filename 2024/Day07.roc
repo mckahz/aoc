@@ -85,8 +85,8 @@ part1 = \input ->
     |> List.sum
 
 part2 = \input ->
-    input
-    |> parse
+    equations = parse input
+    equations
     |> List.keepIf \eq -> eq |> hasSolution [Add, Mul, Cat]
     |> List.map .lhs
     |> List.sum
