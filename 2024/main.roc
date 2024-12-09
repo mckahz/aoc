@@ -19,7 +19,6 @@ main = Stdout.line! "Hello World!"
 # expect Day02.part2 Day02.example == 4
 # expect Day02.part2 Day02.myInput == 455
 
-# TODO: Slow
 # import Day03
 # expect Day03.part1 Day03.example1 == 161
 # expect Day03.part1 Day03.myInput == 189527826
@@ -32,7 +31,6 @@ main = Stdout.line! "Hello World!"
 # expect Day04.part2 Day04.example == 9
 # expect Day04.part2 Day04.myInput == 1998
 
-# TODO: Slow
 # import Day05
 # expect Day05.part1 Day05.example == 143
 # expect Day05.part1 Day05.myInput == 5275
@@ -57,3 +55,10 @@ main = Stdout.line! "Hello World!"
 # expect Day08.part1 Day08.myInput == 273
 # expect Day08.part2 Day08.example == 34
 # expect Day08.part2 Day08.myInput == 1017
+
+# TODO: Slow
+# import Day09
+# expect Day09.part1 Day09.example == 1928
+# expect Day09.part1 Day09.myInput == 6415184586041
+# expect Day09.part2 Day09.example == 2858
+# expect Day09.part2 Day09.myInput == 6436819084274
