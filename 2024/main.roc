@@ -57,14 +57,14 @@ main = Stdout.line! "Hello World!"
 # expect Day08.part2 Day08.myInput == 1017
 
 # TODO: Slow
-# import Day09
-# expect Day09.part1 Day09.example == 1928
-# expect Day09.part1 Day09.myInput == 6415184586041
+import Day09
+expect Day09.part1 Day09.example == 1928
+expect Day09.part1 Day09.myInput == 6415184586041
 # expect Day09.part2 Day09.example == 2858
 # expect Day09.part2 Day09.myInput == 6436819084274
 
-import Day10
-expect Day10.part1 Day10.example == 36
-expect Day10.part1 Day10.myInput == 694
-expect Day10.part2 Day10.example == 81
-expect Day10.part2 Day10.myInput == 1497
+# import Day10
+# expect Day10.part1 Day10.example == 36
+# expect Day10.part1 Day10.myInput == 694
+# expect Day10.part2 Day10.example == 81
+# expect Day10.part2 Day10.myInput == 1497

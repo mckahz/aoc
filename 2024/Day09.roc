@@ -49,27 +49,25 @@ checksum = \memory ->
 optimize : Memory -> Memory
 optimize = \memory ->
     files = memory |> List.keepIf (\cell -> cell != Empty)
-    stoppingPoint = files |> List.len
-    optimizeHelp memory (List.reverse files) 0 stoppingPoint
-    |> List.takeFirst stoppingPoint
-
-optimizeHelp : Memory, Memory, U64, U64 -> Memory
-optimizeHelp = \memory, revFiles, i, stoppingPoint ->
-    cell = memory |> List.get i |> Result.withDefault Empty
-    if i >= stoppingPoint then
-        memory
-    else if cell == Empty then
-        optimizeHelp
-            (memory |> List.set i (revFiles |> List.first |> Result.withDefault Empty))
-            (revFiles |> List.dropFirst 1)
-            (i + 1)
-            stoppingPoint
-    else
-        optimizeHelp
-            memory
-            revFiles
-            (i + 1)
-            stoppingPoint
+    fileCount = List.len files
+    memory
+    |> List.takeFirst fileCount
+    |> List.walkWithIndex
+        { optimized: [] |> List.reserve fileCount, files }
+        \state, cell, i ->
+            if cell != Empty then
+                { state &
+                    optimized: state.optimized
+                    |> List.append cell,
+                }
+            else
+                {
+                    optimized: state.optimized
+                    |> List.appendIfOk (List.last state.files),
+                    files: state.files
+                    |> List.dropLast 1,
+                }
+    |> .optimized
 
 part1 = \input ->
     memory = getMemory (parse input)
