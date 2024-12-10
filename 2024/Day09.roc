@@ -37,16 +37,6 @@ getMemory = \chunks ->
             File id -> File id |> List.repeat chunk.size
     |> List.join
 
-show : Memory -> Str
-show = \memory ->
-    memory
-    |> List.map \cell ->
-        when cell is
-            Empty -> "."
-            File id -> Num.toStr id
-    |> List.prepend "\n"
-    |> Str.joinWith ""
-
 checksum : Memory -> U64
 checksum = \memory ->
     memory
@@ -56,28 +46,17 @@ checksum = \memory ->
             Empty -> 0
     |> List.sum
 
-justFiles : Memory -> Memory
-justFiles = \memory ->
-    memory
-    |> List.map \cell ->
-        when cell is
-            Empty -> []
-            File id -> [File id]
-    |> List.join
-
 optimize : Memory -> Memory
 optimize = \memory ->
-    stoppingPoint = memory |> List.countIf \c -> c != Empty
-    len = List.len memory
-
-    optimizeHelp memory (justFiles memory |> List.reverse) 0 stoppingPoint
+    files = memory |> List.keepIf (\cell -> cell != Empty)
+    stoppingPoint = files |> List.len
+    optimizeHelp memory (List.reverse files) 0 stoppingPoint
     |> List.takeFirst stoppingPoint
-    |> List.concat (List.repeat Empty len)
 
 optimizeHelp : Memory, Memory, U64, U64 -> Memory
 optimizeHelp = \memory, revFiles, i, stoppingPoint ->
     cell = memory |> List.get i |> Result.withDefault Empty
-    if i > stoppingPoint then
+    if i >= stoppingPoint then
         memory
     else if cell == Empty then
         optimizeHelp
@@ -99,54 +78,46 @@ part1 = \input ->
 
 optimizeContiguous : List Chunk -> List Chunk
 optimizeContiguous = \chunks ->
-    maxId =
-        chunks
-        |> List.map \chunk ->
-            when chunk.cell is
-                Empty -> 0
-                File id -> id
-        |> List.max
-        |> Result.withDefault 0
-    optimizeContiguousHelp chunks maxId
+    files =
+        chunks |> List.dropIf \chunk -> chunk.cell == Empty
 
-optimizeContiguousHelp : List Chunk, U64 -> List Chunk
-optimizeContiguousHelp = \chunks, idToMove ->
-    if idToMove == 0 then
+    optimizeContiguousHelp chunks (List.reverse files)
+
+optimizeContiguousHelp : List Chunk, List Chunk -> List Chunk
+optimizeContiguousHelp = \chunks, revFiles ->
+    chunkToMove =
+        revFiles
+        |> List.first
+        |> Result.withDefault { cell: Empty, size: 0 }
+
+    chunkToMoveIndex =
+        chunks
+        |> List.findFirstIndex \chunk -> chunk == chunkToMove
+        |> Result.withDefault 0
+
+    firstAvailableSpace =
+        chunks
+        |> List.findFirstIndex \chunk ->
+            chunk.cell == Empty && chunk.size >= chunkToMove.size
+
+    newChunks =
+        when firstAvailableSpace is
+            Err _ -> chunks
+            Ok i if i > chunkToMoveIndex -> chunks
+            Ok i ->
+                { before, others: after } =
+                    chunks
+                    |> List.set chunkToMoveIndex { chunkToMove & cell: Empty }
+                    |> List.update i \c -> { cell: Empty, size: c.size - chunkToMove.size }
+                    |> List.splitAt i
+                before
+                |> List.append chunkToMove
+                |> List.concat after
+
+    if List.isEmpty revFiles then
         chunks
     else
-        chunkToMoveIndex =
-            chunks
-            |> List.findLastIndex \chunk ->
-                when chunk.cell is
-                    Empty -> Bool.false
-                    File id -> id == idToMove
-            |> Result.withDefault 0
-
-        chunkToMove =
-            chunks
-            |> List.get chunkToMoveIndex
-            |> Result.withDefault { cell: Empty, size: 0 }
-
-        firstAvailableSpace =
-            chunks
-            |> List.findFirstIndex \chunk ->
-                chunk.cell == Empty && chunk.size >= chunkToMove.size
-
-        newChunks =
-            when firstAvailableSpace is
-                Err _ -> chunks
-                Ok i if i > chunkToMoveIndex -> chunks
-                Ok i ->
-                    { before, others: after } =
-                        chunks
-                        |> List.set chunkToMoveIndex { chunkToMove & cell: Empty }
-                        |> List.update i \c -> { cell: Empty, size: c.size - chunkToMove.size }
-                        |> List.splitAt i
-                    before
-                    |> List.append chunkToMove
-                    |> List.concat after
-
-        optimizeContiguousHelp newChunks (idToMove - 1)
+        optimizeContiguousHelp newChunks (revFiles |> List.dropFirst 1)
 
 part2 = \input ->
     chunks = parse input
