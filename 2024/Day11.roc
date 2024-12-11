@@ -4,21 +4,21 @@ import "inputs/day11-example1.txt" as example1 : List U8
 import "inputs/day11-example2.txt" as example2 : List U8
 import "inputs/day11-input.txt" as myInput : List U8
 
-Stones : Dict U64 U64
+StoneCounts : Dict U64 U64
 
+parse : List U8 -> StoneCounts
 parse = \input ->
     input
     |> List.dropLast 1
     |> List.splitOn ' '
     |> List.keepOks Str.fromUtf8
     |> List.keepOks Str.toU64
+    |> List.map \stone -> (stone, 1)
+    |> Dict.fromList
 
-blink : U64 -> List U64
-blink = \stone ->
-    stoneDigits =
-        stone
-        |> Num.toStr
-        |> Str.toUtf8
+blinkOne : U64 -> List U64
+blinkOne = \stone ->
+    stoneDigits = stone |> Num.toStr |> Str.toUtf8
 
     if stone == 0 then
         [1]
@@ -32,32 +32,25 @@ blink = \stone ->
     else
         [stone * 2024]
 
-# histories describes when, in terms of the number of
-# blinks that had passed, a particular stone was encountered
-futures : List U64, Dict U64 (List U64), U64, U64 -> Dict U64 (List U64)
-futures = \stones, histories, maxBlinks, blinks ->
-    newStones =
-        stones
-        |> List.joinMap blink
-
-    newHistories =
-        newStones
-        |> List.walk histories \h, stone ->
-            Dict.update h stone \result ->
-                when result is
-                    Ok occurences -> occurences |> List.append blinks |> Ok
-                    Err _ -> Ok [blinks]
-
-    if blinks >= maxBlinks then
-        newHistories
-    else
-        futures (newStones) newHistories maxBlinks (blinks + 1)
+blink : StoneCounts -> StoneCounts
+blink = \stoneCounts ->
+    stoneCounts
+    |> Dict.toList
+    |> List.joinMap \(current, n) ->
+        blinkOne current
+        |> List.map \next -> (next, n)
+    |> List.walk (Dict.empty {}) \acc, (next, n) ->
+        Dict.update acc next \result ->
+            when result is
+                Ok m -> Ok (m + n)
+                Err Missing -> Ok n
 
 part1 = \input, blinks ->
-    stones = parse input
-    _ =
-        futures [2024] (Dict.empty {}) 6 0
-        |> Dict.map \stone, history -> dbg (stone, history)
-    0
+    stoneCounts = parse input
+
+    List.repeat blink blinks
+    |> List.walk stoneCounts \s, b -> b s
+    |> Dict.values
+    |> List.sum
 
 part2 = part1
