@@ -75,3 +75,13 @@ main = Stdout.line! "Hello World!"
 # expect Day11.part1 Day11.example2 25 == 55312
 # expect Day11.part1 Day11.myInput 25 == 199753
 # expect Day11.part2 Day11.myInput 75 == 239413123020116
+
+import Day12
+expect Day12.part1 Day12.example1 == 140
+expect Day12.part1 Day12.example2 == 772
+expect Day12.part1 Day12.example3 == 1930
+# expect Day12.part1 Day12.myInput == 1483212
+expect Day12.part2 Day12.example4 == 236
+expect Day12.part2 Day12.example5 == 368
+expect Day12.part2 Day12.example3 == 1206
+# expect Day12.part2 Day12.myInput == 897062
