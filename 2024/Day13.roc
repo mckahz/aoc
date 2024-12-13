@@ -19,6 +19,8 @@ Matrix : {
     m22 : F64,
 }
 
+tol = { atol: 0.001, rtol: 0.001 }
+
 det : Matrix -> F64
 det = \m ->
     m.m11 * m.m22 - m.m12 * m.m21
@@ -35,8 +37,6 @@ inv = \m ->
             m12: (-m.m12) / d,
             m22: m.m11 / d,
         }
-
-tol = { atol: 0.001, rtol: 0.001 }
 
 parse : List U8 -> List ClawMachine
 parse = \input ->
@@ -80,32 +80,35 @@ toCoefMatrix = \m -> {
 }
 
 pressesNeeded : ClawMachine -> Result { a : U64, b : U64 } [NoWayToWin]
-pressesNeeded = \clawMachine ->
-    m = clawMachine |> toCoefMatrix
+pressesNeeded = \cm ->
+    m = cm |> toCoefMatrix
     inv m
     |> Result.mapErr \_ -> NoWayToWin
     |> Result.try \i ->
-        { prize } = clawMachine
-        aPresses = i.m11 * (Num.toF64 prize.0) + i.m12 * (Num.toF64 prize.1)
-        bPresses = i.m21 * (Num.toF64 prize.0) + i.m22 * (Num.toF64 prize.1)
-        aPressesR = aPresses |> Num.round |> Num.toFrac
-        bPressesR = bPresses |> Num.round |> Num.toFrac
-        if aPressesR >= 0 && bPressesR >= 0 && (aPresses |> Num.isApproxEq aPressesR tol) && (bPresses |> Num.isApproxEq bPressesR tol) then
-            Ok { a: Num.round aPresses, b: Num.round bPresses }
-        else
+        { prize } = cm
+        fa = i.m11 * (Num.toF64 prize.0) + i.m12 * (Num.toF64 prize.1)
+        fb = i.m21 * (Num.toF64 prize.0) + i.m22 * (Num.toF64 prize.1)
+
+        if (fa < 0) || (fb < 0) then
             Err NoWayToWin
+        else
+            Ok (fa, fb)
+    |> Result.try \(fa, fb) ->
+        ia = Num.round fa
+        ib = Num.round fb
+        fx = \{} -> ia * cm.aButton.0 + ib * cm.bButton.0
+        fy = \{} -> ia * cm.aButton.1 + ib * cm.bButton.1
+        if (cm.prize.0 != fx {}) || (cm.prize.1 != fy {}) then
+            Err NoWayToWin
+        else
+            Ok { a: ia, b: ib }
 
 minToWin : List ClawMachine -> U64
 minToWin = \clawMachines ->
     clawMachines
     |> List.keepOks \m ->
         { a, b } = pressesNeeded? m
-        fx = a * m.aButton.0 + b * m.bButton.0
-        fy = a * m.aButton.1 + b * m.bButton.1
-        if m.prize.0 == fx && m.prize.1 == fy then
-            Ok (3 * a + b)
-        else
-            Err NoWayToWin
+        Ok (3 * a + b)
     |> List.sum
 
 part1 = \input ->
