@@ -85,3 +85,8 @@ main = Stdout.line! "Hello World!"
 # expect Day12.part2 Day12.example5 == 368
 # expect Day12.part2 Day12.example3 == 1206
 # expect Day12.part2 Day12.myInput == 897062
+
+# import Day13
+# expect Day13.part1 Day13.example == 480
+# expect Day13.part1 Day13.myInput == 37128
+# expect Day13.part2 Day13.myInput == 74914228471331
