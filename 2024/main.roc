@@ -91,7 +91,14 @@ main = Stdout.line! "Hello World!"
 # expect Day13.part1 Day13.myInput == 37128
 # expect Day13.part2 Day13.myInput == 74914228471331
 
-import Day14
-expect Day14.part1 Day14.example { x: 11, y: 7 } == 12
-expect Day14.part1 Day14.myInput { x: 101, y: 103 } == 231852216
-expect Day14.part2 Day14.myInput { x: 101, y: 103 } == 8159
+# import Day14
+# expect Day14.part1 Day14.example { x: 11, y: 7 } == 12
+# expect Day14.part1 Day14.myInput { x: 101, y: 103 } == 231852216
+# expect Day14.part2 Day14.myInput { x: 101, y: 103 } == 8159
+
+import Day15
+expect Day15.part1 Day15.example1 == 10092
+expect Day15.part1 Day15.example2 == 2028
+expect Day15.part1 Day15.myInput == 1430439
+expect Day15.part2 Day15.example1 == 9021
+expect Day15.part2 Day15.myInput == 1458740
