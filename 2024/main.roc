@@ -112,14 +112,20 @@ main = Stdout.line! "Hello World!"
 # expect Day16.part2 Day16.example2 == 64
 # expect Day16.part2 Day16.myInput == 533
 
-import Day17
+# import Day17
 # expect Day17.part1 Day17.example1 == "4,6,3,5,6,3,5,2,1,0"
 # expect Day17.part1 Day17.myInput == "1,0,2,0,5,7,2,1,3"
 # expect Day17.part2 Day17.example2 == 117440
-expect Day17.part2 Day17.myInput == 25358365
+# expect Day17.part2 Day17.myInput == 265652340990875
 
 # import Day18
 # expect Day18.part1 Day18.example { x: 6, y: 6 } 12 == 22
 # expect Day18.part1 Day18.myInput { x: 70, y: 70 } 1024 == 322
 # expect Day18.part2 Day18.example { x: 6, y: 6 } 12 == "6,1"
 # expect Day18.part2 Day18.myInput { x: 70, y: 70 } 1024 == "60,21"
+
+# import Day19
+# expect Day19.part1 Day19.example == 6
+# expect Day19.part1 Day19.myInput == 300
+# expect Day19.part2 Day19.example == 16
+# expect Day19.part2 Day19.myInput == 624802218898092
