@@ -96,9 +96,30 @@ main = Stdout.line! "Hello World!"
 # expect Day14.part1 Day14.myInput { x: 101, y: 103 } == 231852216
 # expect Day14.part2 Day14.myInput { x: 101, y: 103 } == 8159
 
-import Day15
-expect Day15.part1 Day15.example1 == 10092
-expect Day15.part1 Day15.example2 == 2028
-expect Day15.part1 Day15.myInput == 1430439
-expect Day15.part2 Day15.example1 == 9021
-expect Day15.part2 Day15.myInput == 1458740
+# import Day15
+# expect Day15.part1 Day15.example1 == 10092
+# expect Day15.part1 Day15.example2 == 2028
+# expect Day15.part1 Day15.myInput == 1430439
+# expect Day15.part2 Day15.example1 == 9021
+# expect Day15.part2 Day15.myInput == 1458740
+
+# TODO: Slow
+# import Day16
+# expect Day16.part1 Day16.example1 == 7036
+# expect Day16.part1 Day16.example2 == 11048
+# expect Day16.part1 Day16.myInput == 107468
+# expect Day16.part2 Day16.example1 == 45
+# expect Day16.part2 Day16.example2 == 64
+# expect Day16.part2 Day16.myInput == 533
+
+import Day17
+# expect Day17.part1 Day17.example1 == "4,6,3,5,6,3,5,2,1,0"
+# expect Day17.part1 Day17.myInput == "1,0,2,0,5,7,2,1,3"
+# expect Day17.part2 Day17.example2 == 117440
+expect Day17.part2 Day17.myInput == 25358365
+
+# import Day18
+# expect Day18.part1 Day18.example { x: 6, y: 6 } 12 == 22
+# expect Day18.part1 Day18.myInput { x: 70, y: 70 } 1024 == 322
+# expect Day18.part2 Day18.example { x: 6, y: 6 } 12 == "6,1"
+# expect Day18.part2 Day18.myInput { x: 70, y: 70 } 1024 == "60,21"

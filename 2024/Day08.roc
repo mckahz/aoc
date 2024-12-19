@@ -26,7 +26,6 @@ maxMapSize = 50
 
 parse : List U8 -> Map
 parse = \input ->
-
     width =
         input
         |> List.walkUntil 0 \w, c ->

@@ -3,91 +3,57 @@ module [example, myInput, part1, part2]
 import "inputs/day06-example.txt" as example : List U8
 import "inputs/day06-input.txt" as myInput : List U8
 
-Dir : [Up, Down, Left, Right]
-Pos : (I32, I32)
+import Linear
+import Map exposing [Pos, Dir, cw90]
+
+Map : Map.Map [Guard, Obstacle]
 
 Guard : {
-    position : Pos,
-    direction : Dir,
-}
-Map : {
-    obstacles : Set Pos,
-    width : I32,
-    height : I32,
+    pos : Pos,
+    dir : Dir,
 }
 
 parse = \input ->
-    lines =
+    map =
         input
-        |> List.splitOn '\n'
-        |> List.dropLast 1
+        |> Map.parse \c ->
+            when c is
+                '#' -> Cell Obstacle
+                _ -> Empty
 
-    width = lines |> List.map List.len |> List.max |> Result.withDefault 0 |> Num.toI32
-    height = lines |> List.len |> Num.toI32
+    guardPos =
+        input
+        |> Map.parse \c ->
+            when c is
+                '^' -> Cell Guard
+                _ -> Empty
+        |> Map.find Guard
+        |> Result.withDefault Linear.zero
 
-    positions =
-        lines
-        |> List.mapWithIndex \line, y ->
-            line
-            |> List.mapWithIndex \c, x -> (c, x)
-            |> List.keepOks \(c, x) ->
-                when c is
-                    '^' -> Ok (Guard, (Num.toI32 x, Num.toI32 y))
-                    '#' -> Ok (Obstacle, (Num.toI32 x, Num.toI32 y))
-                    _ -> Err {}
-        |> List.join
+    ({ pos: guardPos, dir: Up }, map)
 
-    obstacles =
-        positions
-        |> List.keepOks \(t, pos) ->
-            when t is
-                Obstacle -> Ok pos
-                _ -> Err {}
-        |> Set.fromList
-
-    guard = {
-        position: positions
-        |> List.keepOks \(t, pos) ->
-            when t is
-                Guard -> Ok pos
-                _ -> Err {}
-        |> List.first
-        |> Result.withDefault (0, 0),
-        direction: Up,
-    }
-
-    { guard, map: { obstacles, width, height } }
-
-cw90 : Dir -> Dir
-cw90 = \dir ->
-    when dir is
-        Up -> Right
-        Right -> Down
-        Down -> Left
-        Left -> Up
-
-getOffset : Dir -> (I32, I32)
+getOffset : Dir -> Linear.V2
 getOffset = \dir ->
     when dir is
-        Up -> (0, -1)
-        Right -> (1, 0)
-        Down -> (0, 1)
-        Left -> (-1, 0)
+        Up -> { x: 0, y: -1 }
+        Right -> { x: 1, y: 0 }
+        Down -> { x: 0, y: 1 }
+        Left -> { x: -1, y: 0 }
 
 inside : Guard, Map -> Bool
 inside = \guard, map ->
-    (x, y) = guard.position
-    (0 <= x && x < map.width)
-    && (0 <= y && y < map.height)
+    { x, y } = guard.pos
+    (0 <= x && x <= Map.maxX map)
+    && (0 <= y && y <= Map.maxY map)
 
 step : Guard, Map -> Guard
 step = \guard, map ->
-    (ox, oy) = getOffset guard.direction
-    npos = (guard.position.0 + ox, guard.position.1 + oy)
-    if map.obstacles |> Set.contains npos then
-        { guard & direction: cw90 guard.direction }
+    { x: ox, y: oy } = getOffset guard.dir
+    npos = { x: guard.pos.x + ox, y: guard.pos.y + oy }
+    if map |> Map.has Obstacle npos then
+        { guard & dir: cw90 guard.dir }
     else
-        { guard & position: npos }
+        { guard & pos: npos }
 
 simulate : Guard, Map -> Set Pos
 simulate = \guard, map ->
@@ -97,12 +63,12 @@ simulateHelp : Guard, Map, Set Pos -> Set Pos
 simulateHelp = \guard, map, visited ->
     newGuard = step guard map
     if inside newGuard map then
-        simulateHelp newGuard map (visited |> Set.insert guard.position)
+        simulateHelp newGuard map (visited |> Set.insert guard.pos)
     else
-        (visited |> Set.insert guard.position)
+        (visited |> Set.insert guard.pos)
 
 part1 = \input ->
-    { guard, map } = parse input
+    (guard, map) = parse input
     simulate guard map
     |> Set.len
 
@@ -121,10 +87,10 @@ loopsHelp = \guard, map, guardStates ->
         loopsHelp newGuard map (guardStates |> Set.insert guard)
 
 part2 = \input ->
-    { guard, map } = parse input
+    (guard, map) = parse input
 
     simulate guard map
     |> Set.toList
     |> List.mapWithIndex \p, i -> (p, i)
     |> List.countIf \(position, i) ->
-        loops guard { map & obstacles: map.obstacles |> Set.insert position }
+        loops guard (map |> Map.add Obstacle position)

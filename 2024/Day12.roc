@@ -7,39 +7,16 @@ import "inputs/day12-example4.txt" as example4 : List U8
 import "inputs/day12-example5.txt" as example5 : List U8
 import "inputs/day12-input.txt" as myInput : List U8
 
-Map : Dict U8 (Set Pos)
+import Linear exposing [left, right, up, down]
+import Map exposing [Pos]
 
-Pos : (I32, I32)
+Map : Map.Map U8
 
 Region : Set Pos
 
-left : Pos -> Pos
-left = \(x, y) -> (x - 1, y)
-
-right : Pos -> Pos
-right = \(x, y) -> (x + 1, y)
-
-up : Pos -> Pos
-up = \(x, y) -> (x, y - 1)
-
-down : Pos -> Pos
-down = \(x, y) -> (x, y + 1)
-
 parse : List U8 -> Map
 parse = \input ->
-    input
-    |> List.dropLast 1
-    |> List.splitOn '\n'
-    |> List.mapWithIndex \line, y ->
-        line
-        |> List.mapWithIndex \plant, x ->
-            (plant, (Num.toI32 x, Num.toI32 y))
-    |> List.join
-    |> List.walk (Dict.empty {}) \map, (plant, pos) ->
-        Dict.update map plant \result ->
-            when result is
-                Err Missing -> Ok (Set.single pos)
-                Ok poss -> Ok (Set.insert poss pos)
+    input |> Map.parse Cell
 
 appraiseRegions : Set Pos, (Region -> U64) -> U64
 appraiseRegions = \positions, eval ->
@@ -161,8 +138,8 @@ findEdges = \region ->
                 Err NotAnEdge
             else
                 when dir is
-                    Left | Right -> Ok { dir, at: pos.0, min: pos.1, max: pos.1 }
-                    Up | Down -> Ok { dir, at: pos.1, min: pos.0, max: pos.0 }
+                    Left | Right -> Ok { dir, at: pos.x, min: pos.y, max: pos.y }
+                    Up | Down -> Ok { dir, at: pos.y, min: pos.x, max: pos.x }
 
 sides : Region -> U64
 sides = \region ->
@@ -172,10 +149,10 @@ sides = \region ->
 
 appraiseMap : Map, (Region -> U64) -> U64
 appraiseMap = \map, eval ->
-    map
-    |> Dict.values
-    |> List.map \positions ->
+    map.cells
+    |> Dict.map \_, positions ->
         appraiseRegions positions eval
+    |> Dict.values
     |> List.sum
 
 part2 = \input ->

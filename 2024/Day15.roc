@@ -3,38 +3,13 @@ module [example1, example2, myInput, part1, part2]
 import "inputs/day15-example1.txt" as example1 : List U8
 import "inputs/day15-example2.txt" as example2 : List U8
 import "inputs/day15-input.txt" as myInput : List U8
+import Linear
+import Map exposing [Pos, Dir, move]
 
-Pos : {
-    x : I32,
-    y : I32,
-}
-
-Map : {
-    walls : Set Pos,
-    rocks : Set Pos,
-    robot : Pos,
-}
-
-WideMap : {
-    walls : Set Pos,
-    rocks : Set Pos,
-    robot : Pos,
-    wide : {},
-}
-
-Dir : [Left, Right, Up, Down]
-
-left : Pos -> Pos
-left = \p -> { p & x: p.x - 1 }
-
-right : Pos -> Pos
-right = \p -> { p & x: p.x + 1 }
-
-up : Pos -> Pos
-up = \p -> { p & y: p.y - 1 }
-
-down : Pos -> Pos
-down = \p -> { p & y: p.y + 1 }
+Cell : [Robot, Rock, Wall]
+WideCell : [Robot, Rock, Wall]
+Map : Map.Map Cell
+WideMap : Map.Map WideCell
 
 parse : List U8 -> (Map, List Dir)
 parse = \input ->
@@ -44,44 +19,14 @@ parse = \input ->
             [m, d] -> (m, d)
             _ -> crash "invalid input"
 
-    positions =
+    map =
         mapStr
-        |> List.splitOn '\n'
-        |> List.mapWithIndex \row, y ->
-            row
-            |> List.mapWithIndex \c, x ->
-                type =
-                    when c is
-                        '#' -> Wall
-                        'O' -> Rock
-                        '@' -> Robot
-                        _ -> Nothing
-                (type, { x: Num.toI32 x, y: Num.toI32 y })
-        |> List.join
-
-    walls =
-        positions
-        |> List.keepOks \(type, pos) ->
-            if type == Wall then
-                Ok pos
-            else
-                Err {}
-        |> Set.fromList
-
-    rocks =
-        positions
-        |> List.keepOks \(type, pos) ->
-            if type == Rock then
-                Ok pos
-            else
-                Err {}
-        |> Set.fromList
-
-    robot =
-        positions
-        |> List.findFirst \(type, _) -> type == Robot
-        |> Result.map .1
-        |> Result.withDefault { x: 0, y: 0 }
+        |> Map.parse \c ->
+            when c is
+                '#' -> Cell Wall
+                'O' -> Cell Rock
+                '@' -> Cell Robot
+                _ -> Empty
 
     directions =
         dirStr
@@ -93,70 +38,37 @@ parse = \input ->
                 'v' -> Ok Down
                 _ -> Err {}
 
-    ({ walls, rocks, robot }, directions)
-
-move : Pos, Dir -> Pos
-move = \pos, dir ->
-    f =
-        when dir is
-            Left -> left
-            Right -> right
-            Up -> up
-            Down -> down
-    f pos
+    (map, directions)
 
 show : Map -> Str
 show = \map ->
-    maxx =
-        map.walls
-        |> Set.map \{ x } -> x
-        |> Set.toList
-        |> List.max
-        |> Result.withDefault 0
-        |> Num.toU64
-
-    maxy =
-        map.walls
-        |> Set.map \{ y } -> y
-        |> Set.toList
-        |> List.max
-        |> Result.withDefault 0
-        |> Num.toU64
-
-    List.range { start: At 0, end: At maxy }
-    |> List.map Num.toI32
-    |> List.map \y ->
-        List.range { start: At 0, end: At maxx }
-        |> List.map Num.toI32
-        |> List.map \x ->
-            if map.walls |> Set.contains { x, y } then
-                "#"
-            else if map.rocks |> Set.contains { x, y } then
-                "O"
-            else if map.robot == { x, y } then
-                "@"
-            else
-                " "
-        |> Str.joinWith ""
-    |> List.prepend ""
-    |> Str.joinWith "\n"
+    map
+    |> Map.show \c ->
+        when c is
+            Cell Wall -> "#"
+            Cell Rock -> "O"
+            Cell Robot -> "@"
+            Empty -> " "
 
 step : Map, Dir -> Map
 step = \map, dir ->
-    robot = move map.robot dir
-    moveRocks map robot dir
-    |> Result.map \m -> { m & robot: if m.walls |> Set.contains robot then m.robot else robot }
+    oldRobotPos = map |> Map.find Robot |> Result.withDefault Linear.zero
+    newRobotPos = move oldRobotPos dir
+    moveRocks map newRobotPos dir
+    |> Result.map \m -> m |> Map.remove Robot |> Map.add Robot newRobotPos
     |> Result.withDefault map
 
 moveRocks : Map, Pos, Dir -> Result Map [CannotMove]
 moveRocks = \map, from, dir ->
     to = move from dir
-    moveRock = \m -> { m & rocks: m.rocks |> Set.remove from |> Set.insert to }
-    if !(map.rocks |> Set.contains from) then
-        Ok map
-    else if map.walls |> Set.contains to then
+    moveRock = \m -> m |> Map.removeAt from |> Map.add Rock to
+    if map |> Map.has Wall from then
         Err CannotMove
-    else if map.rocks |> Set.contains to then
+    else if !(map |> Map.has Rock from) then
+        Ok map
+    else if map |> Map.has Wall to then
+        Err CannotMove
+    else if map |> Map.has Rock to then
         newMap = moveRocks? map to dir
         Ok (moveRock newMap)
     else
@@ -164,7 +76,8 @@ moveRocks = \map, from, dir ->
 
 score : Map -> I32
 score = \map ->
-    map.rocks
+    map
+    |> Map.findAll Rock
     |> Set.toList
     |> List.map \{ x, y } -> 100 * y + x
     |> List.sum
@@ -172,38 +85,18 @@ score = \map ->
 part1 = \input ->
     (map, dirs) = parse input
     dirs
-    |> List.walkWithIndex map \m, dir, i -> step m dir
+    |> List.walk map \m, dir -> step m dir
     |> score
+    |> dbg
 
 grow : Map -> WideMap
 grow = \map ->
-    widen = \{ x, y } -> { x: 2 * x, y }
-    {
-        rocks: map.rocks |> Set.map widen,
-        walls: map.walls |> Set.map widen,
-        robot: widen map.robot,
-        wide: {},
-    }
+    map |> Map.mapPos \{ x, y } -> { x: 2 * x, y }
 
 showWide : WideMap -> Str
 showWide = \map ->
-    maxx =
-        map.walls
-        |> Set.map \{ x } -> x
-        |> Set.toList
-        |> List.max
-        |> Result.withDefault 0
-        |> Num.toU64
-        |> Num.add 1
-
-    maxy =
-        map.walls
-        |> Set.map \{ y } -> y
-        |> Set.toList
-        |> List.max
-        |> Result.withDefault 0
-        |> Num.toU64
-        |> Num.add 1
+    maxx = Map.maxX map
+    maxy = Map.maxY map
 
     List.range { start: At 0, end: At maxy }
     |> List.map Num.toI32
@@ -211,22 +104,19 @@ showWide = \map ->
         List.range { start: At 0, end: At maxx }
         |> List.map Num.toI32
         |> List.map \x ->
-            wallHere = map.walls |> Set.contains { x, y }
-            wallLeft = map.walls |> Set.contains { x: x - 1, y }
-            rockHere = map.rocks |> Set.contains { x, y }
-            rockLeft = map.rocks |> Set.contains { x: x - 1, y }
-            robotLeft = map.robot == { x: x - 1, y }
-            if wallLeft then
+            here = { x, y }
+            left = { x: x - 1, y }
+            if map |> Map.has Wall here then
                 "#"
-            else if wallHere then
+            else if map |> Map.has Wall left then
                 "#"
-            else if rockLeft then
+            else if map |> Map.has Rock left then
                 "]"
-            else if rockHere then
+            else if map |> Map.has Rock here then
                 "["
-            else if robotLeft then
+            else if map |> Map.has Robot left then
                 " "
-            else if map.robot == { x, y } then
+            else if map |> Map.has Robot here then
                 "@"
             else
                 " "
@@ -236,54 +126,58 @@ showWide = \map ->
 
 stepWide : WideMap, Dir -> WideMap
 stepWide = \map, dir ->
-    robot = move map.robot dir
-    robotLeft = { robot & x: robot.x - 1 }
-    wallInWay = (map.walls |> Set.contains robot) || (map.walls |> Set.contains { robot & x: robot.x - 1 })
+    oldRobotPos = map |> Map.find Robot |> Result.withDefault Linear.zero
+    robotPos = move oldRobotPos dir
+    leftRobotPos = { robotPos & x: robotPos.x - 1 }
+    moveRobot = \m -> m |> Map.remove Robot |> Map.add Robot robotPos
+    wallInWay = (map |> Map.has Wall robotPos) || (map |> Map.has Wall leftRobotPos)
     if wallInWay then
         map
-    else if map.rocks |> Set.contains robot then
-        moveRocksWide map robot dir
-        |> Result.map \m -> { m & robot }
+    else if map |> Map.has Rock robotPos then
+        moveRocksWide map robotPos dir
+        |> Result.map moveRobot
         |> Result.withDefault map
-    else if map.rocks |> Set.contains robotLeft then
-        moveRocksWide map robotLeft dir
-        |> Result.map \m -> { m & robot }
+    else if map |> Map.has Rock leftRobotPos then
+        moveRocksWide map leftRobotPos dir
+        |> Result.map moveRobot
         |> Result.withDefault map
     else
-        { map & robot }
+        map
+        |> Map.remove Robot
+        |> Map.add Robot robotPos
 
 moveRocksWide : WideMap, Pos, Dir -> Result WideMap [CannotMove]
 moveRocksWide = \map, pos, dir ->
     newPos = move pos dir
-    leftNewPos = move { pos & x: pos.x - 1 } dir
-    rightNewPos = move { pos & x: pos.x + 1 } dir
-    moveRock = \m -> { m & rocks: m.rocks |> Set.remove pos |> Set.insert newPos }
-    if !(map.rocks |> Set.contains pos) then
+    leftNewPos = { newPos & x: newPos.x - 1 }
+    rightNewPos = { newPos & x: newPos.x + 1 }
+
+    if !(map |> Map.has Rock pos) then
         Ok map
-    else if map.walls |> Set.contains newPos then
+    else if map |> Map.has Wall newPos then
         Err CannotMove
-    else if map.walls |> Set.contains leftNewPos then
+    else if map |> Map.has Wall leftNewPos then
         Err CannotMove
-    else if map.walls |> Set.contains rightNewPos then
+    else if map |> Map.has Wall rightNewPos then
         Err CannotMove
     else
-        [
-            Ok newPos,
-            if dir == Right then Err {} else Ok leftNewPos,
-            if dir == Left then Err {} else Ok rightNewPos,
-        ]
-        |> List.keepOks \p -> p
-        |> List.keepIf \p -> map.rocks |> Set.contains p
+        nextRockPositions =
+            [
+                Ok newPos,
+                if dir == Right then Err {} else Ok leftNewPos,
+                if dir == Left then Err {} else Ok rightNewPos,
+            ]
+            |> List.keepOks \p -> p
+            |> List.keepIf \p -> (map |> Map.has Rock p)
+
+        nextRockPositions
         |> List.walkTry map \m, p ->
             moveRocksWide m p dir
-        |> Result.map moveRock
-
-scoreWide : WideMap -> I32
-scoreWide = \map -> score { walls: map.walls, rocks: map.rocks, robot: map.robot }
+        |> Result.map \m -> m |> Map.removeAt pos |> Map.add Rock newPos
 
 part2 = \input ->
     (map, dirs) = parse input
     dirs
-    |> List.walkWithIndex (grow map) \m, dir, i ->
+    |> List.walk (grow map) \m, dir ->
         stepWide m dir
-    |> scoreWide
+    |> score
